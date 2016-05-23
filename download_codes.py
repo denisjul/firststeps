@@ -1,5 +1,23 @@
 # -*- coding:utf-8 -*-
 
+# #############################################################################
+# ################################   Notes   ##################################
+# #############################################################################
+"""
+1. run the script
+2. acces to the codes by listofcodes: for the 'x'th code:
+    listofcodes[x][0] or listofcodes[x][2].name: code's title
+    listofcodes[x][1]: ref legifrance
+    listofcodes[x][2]: the code
+
+*listofcodes[x][2].contents[] will return the main titles of the codes
+*listofcodes[x][2].contents[0].contents[] will return the rank 2 titles or
+the Articles contained in the first main title of the code
+*etc.
+"""
+# #############################################################################
+
+
 from classe_pdf import Code_de_lois, Article, Titre, Tableau
 import ssl
 import urllib.error
@@ -63,17 +81,15 @@ def get_code_data(code_LEGITEXT):  # 2
             buf_15 = buf_15[1:15]
     return code
 
-# ################################ A tester ################################
 
-
-def get_articles(link):  # ad list_title_open <-------
+def get_articles(link):
     """ detect, select and copy all articles from a Legifrance page """
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
     b = urllib.request.urlopen(link, context=ctx)
     cs_article = b.read().decode("utf-8")
-    contents = []  # <-- A changer !!!!!!
+    contents = []
     new_article = Article()
     buf = ""
     for j in range(len(cs_article)):
@@ -183,8 +199,6 @@ def remove_piece_of_text(text, start, end):
             buf = buf[1:2]
     return new_text
 
-# ###############################################################################
-
 
 def get_link_articles(code_source, i):  # 2.c
     i += 11
@@ -287,7 +301,7 @@ def Get_codes_ref():  # 1
 
 
 listofcodes = Get_codes_ref()
-for x in range(1):  # len(listofcodes)
+for x in range(len(listofcodes)):
     listofcodes[x][2] = get_code_data(listofcodes[x][1])
 
 """
