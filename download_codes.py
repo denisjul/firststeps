@@ -18,7 +18,8 @@ the Articles contained in the first main title of the code
 # #############################################################################
 
 
-from classe_pdf import Code_de_lois, Article, Titre, Tableau
+from classe_pdf import Code_de_lois, Article, Titre, Table
+from functions import get_something, remove_piece_of_text
 import ssl
 import urllib.error
 import urllib.request
@@ -111,33 +112,6 @@ def get_articles(link):
     return contents
 
 
-def get_something(code_source, start, end, i):
-    """ Recover the text between 'start' and 'end' (as str),
-    'start' & 'end' excluded"""
-    length_start = len(start)
-    length_end = len(end)
-    buf_start = ""
-    buf_end = ""
-    text = ""
-    flag = True
-    while flag:
-        i += 1
-        buf_start += code_source[i]
-        if len(buf_start) >= length_start:
-            if buf_start == start:
-                while flag:
-                    i += 1
-                    buf_end += code_source[i]
-                    text += code_source[i]
-                    if len(buf_end) >= length_end:
-                        if buf_end == end:
-                            text = text.replace(end, '')
-                            flag = False
-                        buf_end = buf_end[1: len(end)]
-            buf_start = buf_start[1: len(start)]
-    return text, i
-
-
 def recover_article(text):
     """recover the entire article (text & table parts)"""
     text = text.replace('<center>', "")
@@ -152,10 +126,10 @@ def recover_article(text):
         if buf_get_table == "<table ":
             article.append(clean_article_text(art_part))
             art_part = ""
-            i += 7
         elif buf_get_table == "/table>":
             i += 7
-            tab = Tableau(art_part)
+            art_part += "/table>"
+            tab = Table(art_part)
             article.append(tab)
             art_part = ""
         art_part += text[i]
@@ -174,30 +148,6 @@ def clean_article_text(text):
     text = text.replace('<br/>', '\n')
     text = remove_piece_of_text(text, '<a', '">')
     return text
-
-
-def remove_piece_of_text(text, start, end):
-    """remove the text between 'start' and 'end' str,
-        'start' & 'end' encluded"""
-    length_start = len(start)
-    length_end = len(end)
-    buf = ""
-    new_text = ""
-    flag = True
-    i = 0
-    for i in range(len(text)):
-        buf += text[i]
-        if flag:
-            new_text += text[i]
-        if len(buf) == length_start:
-            if buf == start:
-                new_text = new_text[0:len(new_text) - length_start]
-                flag = False
-        if len(buf) == length_end:
-            if buf == end:
-                flag = True
-            buf = buf[1:2]
-    return new_text
 
 
 def get_link_articles(code_source, i):  # 2.c
@@ -302,13 +252,9 @@ def Get_codes_ref():  # 1
 
 listofcodes = Get_codes_ref()
 for x in range(len(listofcodes)):
-    listofcodes[x][2] = get_code_data(listofcodes[x][1])
+    try:
+        listofcodes[x][2] = get_code_data(listofcodes[x][1])
+        print('code ', x, 'op : ', listofcodes[x][2].name)
+    except:
+        print('poblème sur code ', x, ': ', listofcodes[x][0])
 
-"""
-Test instructions:
-
-code = get_code_data("000006075116")
-
-link = 'https://www.legifrance.gouv.fr/affichCode.do;jsessionid=A9AC8977D52FB09BD905F2970370E00D.tpdila10v_3?idSectionTA=LEGISCTA000006132295&cidTexte=LEGITEXT000006075116&dateTexte=20160516'
-page_contents = get_articles(link)
-"""
