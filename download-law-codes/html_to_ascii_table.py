@@ -103,6 +103,8 @@ class Cell():
                 height += 1
                 counter = 0
                 i += 1
+        if counter > width:
+            width = counter
         return width, height
 
 
@@ -163,11 +165,11 @@ class Table():
             buf = self.clean_html[t:t + 4]
             if buf == '<tr>' or buf == '<tr ':
                 try:
-                    test = tab[row + 1][0]
+                    test = tab[row + 1]
                 except:
                     tab.append([])
-                if len(tab[row]) > max_col and row != -1:
-                    max_col = len(tab[row])
+                    for x in range(len(tab[row])):
+                            tab[row + 1].append('X')
                 col = -1
                 row += 1
             elif buf == '<td ' or buf == '<td>':
@@ -186,17 +188,34 @@ class Table():
                         test = tab[row + i]
                     except:
                         tab.append([])
-                        for x in range(len(tab[row])):
+                        for x in range(len(tab[row + i - 1])):
                             tab[row + i].append('X')
-                    for j in range(self.cellslist[-1].colspan):
+                    if i == 0:
                         try:
-                            A = tab[row + i][col + j]
+                            A = tab[row + i][col]
                             if A == 'X':
-                                tab[row + i][col + j] = len(self.cellslist) - 1
+                                tab[row + i][col] = len(self.cellslist) - 1
+                                cspan = col
                             else:
-                                tab[row + i].append(len(self.cellslist) - 1)
+                                flag2 = True
+                                x = col
+                                while x < len(tab[row + i]) and flag2:
+                                    if tab[row + i][x] == 'X':
+                                        tab[row + i][x] = len(self.cellslist) - 1
+                                        cspan = x
+                                        flag2 = False
+                                    else:
+                                        x += 1
+                                if flag2:
+                                    tab[row + i].append(len(self.cellslist) - 1)
+                                    cspan = len(tab[row + i]) - 1
                         except:
                             tab[row + i].append(len(self.cellslist) - 1)
+                            cspan = len(tab[row + i]) - 1
+                    for j in range(cspan, cspan + self.cellslist[-1].colspan):
+                        while cspan + self.cellslist[-1].colspan > len(tab[row + i]):
+                            tab[row + i].append('X')
+                        tab[row + i][j] = len(self.cellslist) - 1
             elif buf == '/tr>':
                 if len(tab[row]) > max_col and row != -1:
                     max_col = len(tab[row])
@@ -204,6 +223,7 @@ class Table():
                 text += self.clean_html[t]
         for i in range(len(tab)):
             if len(tab[i]) < max_col:
+                print(tab)
                 last_cell = tab[i][-1]
                 while len(tab[i]) < max_col:
                     tab[i].append(last_cell)
@@ -271,21 +291,12 @@ class Table():
                     # And deals with colspan
                     if j == 0:
                         if h == self.heights[i]:
-                            line += '+-'
+                            line += '+'
                         else:
-                            line += '| '
-                    else:
-                        if (j > 0 and
-                                self.tab[i][j] == self.tab[i][j - 1] and
-                                x < len(self.cellslist[X].contents)):
-                            line += self.cellslist[X].contents[x]
-                            x += 1
-                        elif h == self.heights[i]:
-                            line += '-'
-                        else:
-                            line += ' '
+                            line += '|'
                     # contents of the cell
                     if flag[j]:
+                        line += ' '
                         while w < self.widths[j]:
                             if (x >= len(self.cellslist[X].contents) and
                                     flag[j]):
@@ -301,22 +312,36 @@ class Table():
                                     x < len(self.cellslist[X].contents)):
                                 self.heights[i] += 1
                             w += 1
-                    elif flag[j] is False and h == self.heights[i]:
-                        line += '-' * self.widths[j]
+                    elif (h == self.heights[i] and
+                            ((flag[j] is False and
+                                i < (len(self.heights) - 1) and
+                                self.tab[i][j] != self.tab[i + 1][j]) or
+                                i == (len(self.heights) - 1))):
+                        line += '-' + '-' * self.widths[j]
                     else:
-                        line += ' ' * self.widths[j]
+                        line += ' ' + ' ' * self.widths[j]
                     # right line of the cell
                     if (j < len(self.widths) - 1 and
                             self.tab[i][j] == self.tab[i][j + 1]):
                         if x < len(self.cellslist[X].contents):
                             line += self.cellslist[X].contents[x:x + 2]
                             x += 2
-                        elif h == self.heights[i] and flag[j] is False:
+                        elif (h == self.heights[i] and
+                                ((flag[j] is False and
+                                    i < (len(self.heights) - 1) and
+                                    self.tab[i][j] != self.tab[i + 1][j]) or
+                                    i == (len(self.heights) - 1))):
                             line += '--'
                         else:
                             line += '  '
                     elif h == self.heights[i]:
-                        line += '-+'
+                        if ((flag[j] is False and
+                                i < (len(self.heights) - 1) and
+                                self.tab[i][j] != self.tab[i + 1][j]) or
+                                i == (len(self.heights) - 1)):
+                            line += '-+'
+                        else:
+                            line += ' +'
                     else:
                         line += ' |'
                     # end of the line?
@@ -327,140 +352,3 @@ class Table():
                     self.cellslist[self.tab[i][j]].itr = x
                 h += 1
         return rep
-
-"""
-TEST = 
-<table border="1">
-<tbody>
-<tr>
-<td align="center" colspan="1" rowspan="1">
-<br/>a) Informations relatives au prêteur <br/>
-</td>
-<td align="center" colspan="1" rowspan="1">
-<br/>
-<br/>
-</td>
-</tr>
-<tr>
-<td align="center" colspan="1" rowspan="1">
-<br/>Le cas échéant <br/>
-</td>
-<td align="center" colspan="1" rowspan="1">
-<br/>
-<br/>
-</td>
-</tr>
-<tr>
-<td align="center" colspan="1" rowspan="1">
-<br/>Représentant du prêteur dans l'Etat membre dans lequel vous résidez <br/>
-<br/>Adresse <br/>
-<br/>Numéro de téléphone (*) <br/>
-<br/>Adresse électronique (*) <br/>
-<br/>Numéro de télécopieur (*) <br/>
-<br/>Adresse internet (*) <br/>
-</td>
-<td align="center" colspan="1" rowspan="1">
-<br/>[Identité] <br/>
-<br/>[Adresse géographique à utiliser par l'emprunteur] <br/>
-</td>
-</tr>
-<tr>
-<td align="center" colspan="1" rowspan="1">
-<br/>Enregistrement <br/>
-</td>
-<td align="center" colspan="1" rowspan="1">
-<br/>[Le registre du commerce dans lequel le prêteur est inscrit et son numéro d'enregistrement ou un moyen équivalent d'identification dans ce registre] <br/>
-</td>
-</tr>
-<tr>
-<td align="center" colspan="1" rowspan="1">
-<br/>L'autorité de surveillance <br/>
-</td>
-<td align="center" colspan="1" rowspan="1">
-<br/>[Les coordonnées des autorités chargées du contrôle de l'activité soumise à autorisation] <br/>
-</td>
-</tr>
-<tr>
-<td align="center" colspan="1" rowspan="1">
-<br/>b) Informations relatives au contrat de crédit <br/>
-</td>
-<td align="center" colspan="1" rowspan="1">
-<br/>
-<br/>
-</td>
-</tr>
-<tr>
-<td align="center" colspan="1" rowspan="1">
-<br/>Droit de rétractation <br/>
-<br/>Vous disposez d'un délai de quatorze jours calendaires pour revenir sur votre engagement vis-à-vis du contrat de crédit. <br/>
-</td>
-<td align="center" colspan="1" rowspan="1">
-<br/>Oui <br/>
-</td>
-</tr>
-<tr>
-<td align="center" colspan="1" rowspan="1">
-<br/>Exercice du droit de rétractation <br/>
-</td>
-<td align="center" colspan="1" rowspan="1">
-<br/>[Instructions pratiques pour l'exercice du droit de rétractation indiquant, entre autres, l'adresse à laquelle la notification doit être envoyée par l'emprunteur et les conséquences du non-exercice de ce droit] <br/>
-</td>
-</tr>
-<tr>
-<td align="center" colspan="1" rowspan="1">
-<br/>La législation sur laquelle le prêteur se fonde pour établir des relations avec vous avant la conclusion du contrat de crédit <br/>
-</td>
-<td align="center" colspan="1" rowspan="1">
-<br/>
-<br/>
-</td>
-</tr>
-<tr>
-<td align="center" colspan="1" rowspan="1">
-<br/>Clause concernant la législation applicable au contrat de crédit et/ ou la juridiction compétente <br/>
-</td>
-<td align="center" colspan="1" rowspan="1">
-<br/>[Mentionner la clause pertinente ici] <br/>
-</td>
-</tr>
-<tr>
-<td align="center" colspan="1" rowspan="1">
-<br/>Régime linguistique <br/>
-</td>
-<td align="center" colspan="1" rowspan="1">
-<br/>Les informations et les conditions contractuelles seront fournies en [langue]. Avec votre accord, nous comptons communiquer en [langue/ langues] pendant la durée du contrat de crédit. <br/>
-</td>
-</tr>
-<tr>
-<td align="center" colspan="1" rowspan="1">
-<br/>c) Informations relatives au droit de recours <br/>
-</td>
-<td align="center" colspan="1" rowspan="1">
-<br/>
-<br/>
-</td>
-</tr>
-<tr>
-<td align="center" colspan="1" rowspan="1">
-<br/>Existence de procédures extrajudiciaires de réclamation et de recours, et modalités d'accès à ces procédures <br/>
-</td>
-<td align="center" colspan="1" rowspan="1">
-<br/>[Existence ou non de procédures extrajudiciaires de réclamation et de recours accessibles au consommateur qui est partie au contrat à distance et, si de telles procédures existent, modalités d'accès à ces dernières] <br/>
-</td>
-</tr>
-<tr>
-<td colSpan="3" colspan="1" rowspan="1">
-<br/>(*) Les informations suivies de ce signe sont facultatives pour le prêteur. <br/>
-<br/> Le cas échéant  : lorsque cette mention est indiquée, le prêteur doit remplir la case si l'information est pertinente pour le crédit ou supprimer l'information correspondante ou toute la ligne si l'information ne concerne pas le type de crédit envisagé. <br/>
-<br/>[Indications entre crochets] : ces explications sont destinées au prêteur et doivent être remplacées par les informations correspondantes.<br/>
-</td>
-</tr>
-</tbody>
-</table>
-
-A = Table(TEST)
-print(A)
-
-# Revoir si manque de ligne, ajouter une ligne
-# Revoir si mot coupé
-"""
