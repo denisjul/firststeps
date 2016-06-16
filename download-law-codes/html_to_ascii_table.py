@@ -103,6 +103,8 @@ class Cell():
                 height += 1
                 counter = 0
                 i += 1
+        if counter > width:
+            width = counter
         return width, height
 
 
@@ -163,11 +165,11 @@ class Table():
             buf = self.clean_html[t:t + 4]
             if buf == '<tr>' or buf == '<tr ':
                 try:
-                    test = tab[row + 1][0]
+                    test = tab[row + 1]
                 except:
                     tab.append([])
-                if len(tab[row]) > max_col and row != -1:
-                    max_col = len(tab[row])
+                    for x in range(len(tab[row])):
+                            tab[row + 1].append('X')
                 col = -1
                 row += 1
             elif buf == '<td ' or buf == '<td>':
@@ -186,17 +188,34 @@ class Table():
                         test = tab[row + i]
                     except:
                         tab.append([])
-                        for x in range(len(tab[row])):
+                        for x in range(len(tab[row + i - 1])):
                             tab[row + i].append('X')
-                    for j in range(self.cellslist[-1].colspan):
+                    if i == 0:
                         try:
-                            A = tab[row + i][col + j]
+                            A = tab[row + i][col]
                             if A == 'X':
-                                tab[row + i][col + j] = len(self.cellslist) - 1
+                                tab[row + i][col] = len(self.cellslist) - 1
+                                cspan = col
                             else:
-                                tab[row + i].append(len(self.cellslist) - 1)
+                                flag2 = True
+                                x = col
+                                while x < len(tab[row + i]) and flag2:
+                                    if tab[row + i][x] == 'X':
+                                        tab[row + i][x] = len(self.cellslist) - 1
+                                        cspan = x
+                                        flag2 = False
+                                    else:
+                                        x += 1
+                                if flag2:
+                                    tab[row + i].append(len(self.cellslist) - 1)
+                                    cspan = len(tab[row + i]) - 1
                         except:
                             tab[row + i].append(len(self.cellslist) - 1)
+                            cspan = len(tab[row + i]) - 1
+                    for j in range(cspan, cspan + self.cellslist[-1].colspan):
+                        while cspan + self.cellslist[-1].colspan > len(tab[row + i]):
+                            tab[row + i].append('X')
+                        tab[row + i][j] = len(self.cellslist) - 1
             elif buf == '/tr>':
                 if len(tab[row]) > max_col and row != -1:
                     max_col = len(tab[row])
@@ -204,6 +223,7 @@ class Table():
                 text += self.clean_html[t]
         for i in range(len(tab)):
             if len(tab[i]) < max_col:
+                print(tab)
                 last_cell = tab[i][-1]
                 while len(tab[i]) < max_col:
                     tab[i].append(last_cell)
@@ -271,21 +291,12 @@ class Table():
                     # And deals with colspan
                     if j == 0:
                         if h == self.heights[i]:
-                            line += '+-'
+                            line += '+'
                         else:
-                            line += '| '
-                    else:
-                        if (j > 0 and
-                                self.tab[i][j] == self.tab[i][j - 1] and
-                                x < len(self.cellslist[X].contents)):
-                            line += self.cellslist[X].contents[x]
-                            x += 1
-                        elif h == self.heights[i]:
-                            line += '-'
-                        else:
-                            line += ' '
+                            line += '|'
                     # contents of the cell
                     if flag[j]:
+                        line += ' '
                         while w < self.widths[j]:
                             if (x >= len(self.cellslist[X].contents) and
                                     flag[j]):
@@ -301,22 +312,36 @@ class Table():
                                     x < len(self.cellslist[X].contents)):
                                 self.heights[i] += 1
                             w += 1
-                    elif flag[j] is False and h == self.heights[i]:
-                        line += '-' * self.widths[j]
+                    elif (h == self.heights[i] and
+                            ((flag[j] is False and
+                                i < (len(self.heights) - 1) and
+                                self.tab[i][j] != self.tab[i + 1][j]) or
+                                i == (len(self.heights) - 1))):
+                        line += '-' + '-' * self.widths[j]
                     else:
-                        line += ' ' * self.widths[j]
+                        line += ' ' + ' ' * self.widths[j]
                     # right line of the cell
                     if (j < len(self.widths) - 1 and
                             self.tab[i][j] == self.tab[i][j + 1]):
                         if x < len(self.cellslist[X].contents):
                             line += self.cellslist[X].contents[x:x + 2]
                             x += 2
-                        elif h == self.heights[i] and flag[j] is False:
+                        elif (h == self.heights[i] and
+                                ((flag[j] is False and
+                                    i < (len(self.heights) - 1) and
+                                    self.tab[i][j] != self.tab[i + 1][j]) or
+                                    i == (len(self.heights) - 1))):
                             line += '--'
                         else:
                             line += '  '
                     elif h == self.heights[i]:
-                        line += '-+'
+                        if ((flag[j] is False and
+                                i < (len(self.heights) - 1) and
+                                self.tab[i][j] != self.tab[i + 1][j]) or
+                                i == (len(self.heights) - 1)):
+                            line += '-+'
+                        else:
+                            line += ' +'
                     else:
                         line += ' |'
                     # end of the line?
@@ -327,4 +352,7 @@ class Table():
                     self.cellslist[self.tab[i][j]].itr = x
                 h += 1
         return rep
+<<<<<<< HEAD
         
+=======
+>>>>>>> refs/remotes/origin/BranchToPull
