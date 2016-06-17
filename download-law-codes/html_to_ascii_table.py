@@ -5,13 +5,22 @@ Printable with python print() """
 
 from functions import get_something, remove_piece_of_text
 
-LIST_OF_CHANGE = [('<p>', ''),
+LIST_OF_CHANGE = [('<thead>\n', ''),
+                  ('</thead>\n', ''),
+                  ('<sup>', ''),
+                  ('</sup>', ''),
+                  ('<br clear="none"/>', ''),
+                  (' align="left"', ''),
+                  (' align="right"', ''),
+                  (' align="center"', ''),
+                  (' align="justify"', ''),
+                  (' vAlign="top"', ''),
+                  (' vAlign="middle"', ''),
+                  (' vAlign="bottom"', ''),
+                  ('<p>', ''),
                   ('<b>', ''),
                   ('</b>', ''),
                   ('<br/>', ''),
-                  ('<thead>\n', ''),
-                  ('</thead>\n', ''),
-                  ('<br clear="none"/>', ''),
                   ('</p>', ''),
                   (' colspan="1"', ''),
                   (' rowspan="1"', ''),
@@ -31,9 +40,7 @@ LIST_OF_CHANGE = [('<p>', ''),
                   ('</tbody>\n', ''),
                   ]
 
-LIST_OF_DEL = [(' align=', '>', '/'),
-               (' vAlign=', '>', '/'),
-               (' width=', '>', '/')
+LIST_OF_DEL = [(' width=', '>', '/')
                ]
 
 
@@ -113,7 +120,7 @@ class Table():
     def __init__(self, html):
         self.html = html
         self.clean_html = self._prepare_html(html)
-        self.cellslist = []
+        self.cellslist = [None]
         self.tab = self._get_dat_tab()
         self.widths, self.heights = self._get_the_sizes()
         self.representation = self._get_repr()
@@ -223,10 +230,16 @@ class Table():
                 text += self.clean_html[t]
         for i in range(len(tab)):
             if len(tab[i]) < max_col:
-                print(tab)
                 last_cell = tab[i][-1]
                 while len(tab[i]) < max_col:
                     tab[i].append(last_cell)
+        for i in range(len(tab)):
+            for j in range(max_col):
+                if tab[i][j] == 'X':
+                    if j > 0:
+                        tab[i][j] = tab[i][j - 1]
+                    else:
+                        tab[i][j] = 0
         return tab
 
     def _get_the_sizes(self):
@@ -296,7 +309,14 @@ class Table():
                             line += '|'
                     # contents of the cell
                     if flag[j]:
-                        line += ' '
+                        if (j > 0 and
+                                self.tab[i][j] == self.tab[i][j - 1] and
+                                flag[j - 1] and
+                                x < len(self.cellslist[X].contents)):
+                            line += self.cellslist[X].contents[x]
+                            x += 1
+                        else:
+                            line += ' '
                         while w < self.widths[j]:
                             if (x >= len(self.cellslist[X].contents) and
                                     flag[j]):
@@ -352,7 +372,3 @@ class Table():
                     self.cellslist[self.tab[i][j]].itr = x
                 h += 1
         return rep
-<<<<<<< HEAD
-        
-=======
->>>>>>> refs/remotes/origin/BranchToPull
